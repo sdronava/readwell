@@ -20,7 +20,7 @@ function shortName(name: string): string {
 }
 
 export function TtsControls({ speaking, onPlay, onStop }: Props) {
-  const { ttsRate, setTtsRate, voiceURI, setVoiceURI } = useReaderSettings();
+  const { ttsRate, setTtsRate, voiceURI, setVoiceURI, autoPageTurn, setAutoPageTurn } = useReaderSettings();
   const voices = useVoices();
 
   const selectClass =
@@ -57,6 +57,21 @@ export function TtsControls({ speaking, onPlay, onStop }: Props) {
           <option key={r.value} value={r.value}>{r.label}</option>
         ))}
       </select>
+
+      {/* Auto-turn toggle */}
+      <label
+        className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none"
+        title="Automatically turn to the next page when reading finishes"
+      >
+        <input
+          type="checkbox"
+          checked={autoPageTurn}
+          onChange={(e) => setAutoPageTurn(e.target.checked)}
+          aria-label="Auto-turn page when reading finishes"
+          className="rounded border-gray-300 dark:border-gray-600 accent-brand-500"
+        />
+        Auto-turn
+      </label>
 
       {speaking ? (
         <button

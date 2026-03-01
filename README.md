@@ -136,7 +136,7 @@ The gateway returns a `cdnBaseUrl` with every metadata response. The frontend co
 ```bash
 cd backend/services/content_gateway
 uv sync --group dev
-LOCAL_MODE=true BOOKS_DIR=../../books CONTENT_BASE_URL=http://localhost:9000 \
+LOCAL_MODE=true BOOKS_DIR=../../../books CONTENT_BASE_URL=http://localhost:9000 \
   uv run uvicorn content_gateway.main:app --port 8000 --reload
 ```
 
@@ -202,7 +202,7 @@ python -m http.server 9000
 
 # Terminal 2 — Content Gateway API
 cd backend/services/content_gateway
-LOCAL_MODE=true BOOKS_DIR=../../books CONTENT_BASE_URL=http://localhost:9000 \
+LOCAL_MODE=true BOOKS_DIR=../../../books CONTENT_BASE_URL=http://localhost:9000 \
   uv run uvicorn content_gateway.main:app --port 8000 --reload
 
 # Terminal 3 — React frontend
@@ -217,7 +217,7 @@ Open [http://localhost:5173](http://localhost:5173). The library will list any b
 ```bash
 cd backend/services/document_converter
 uv run document-converter convert /path/to/book.epub \
-  --output-dir ../../books/ \
+  --output-dir ../../../books/ \
   --verbose
 ```
 

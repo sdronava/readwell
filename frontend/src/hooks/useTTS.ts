@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import type { Block } from "../types/blocks";
 
-export function useTTS(blocks: Block[]) {
+export function useTTS(blocks: Block[], rate: number = 1, voiceURI: string = "") {
   const [speaking, setSpeaking] = useState(false);
   const [highlightRange, setHighlightRange] = useState<{ start: number; length: number } | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -20,6 +20,13 @@ export function useTTS(blocks: Block[]) {
     if (!text) return;
 
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = rate;
+
+    if (voiceURI) {
+      const voice = window.speechSynthesis.getVoices().find((v) => v.voiceURI === voiceURI);
+      if (voice) utterance.voice = voice;
+    }
+
     utteranceRef.current = utterance;
 
     utterance.addEventListener("boundary", (e: SpeechSynthesisEvent) => {
@@ -35,7 +42,7 @@ export function useTTS(blocks: Block[]) {
 
     window.speechSynthesis.speak(utterance);
     setSpeaking(true);
-  }, [getReadableText]);
+  }, [getReadableText, rate, voiceURI]);
 
   const stop = useCallback(() => {
     window.speechSynthesis.cancel();

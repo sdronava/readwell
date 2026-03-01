@@ -38,7 +38,7 @@ export function ReaderView() {
     setPageNum(nextPage);
   }, [autoPageTurn, meta, pageNum]);
 
-  const { speak, stop, speaking, highlightRange } = useTTS(page?.blocks ?? [], ttsRate, voiceURI, handleNaturalEnd);
+  const { speak, stop, speaking, highlightRange, speakingFromIndex } = useTTS(page?.blocks ?? [], ttsRate, voiceURI, handleNaturalEnd);
 
   // Refs for each rendered block element, used for auto-scroll
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -52,11 +52,12 @@ export function ReaderView() {
     }
   }
 
-  // Compute which block is being read and the word's local offset within that block
+  // Compute which block is being read and the word's local offset within that block.
+  // Iteration starts at speakingFromIndex because speak() only includes text from that block on.
   const { activeBlockIndex, localHighlightStart } = useMemo(() => {
     if (!highlightRange || !page) return { activeBlockIndex: -1, localHighlightStart: -1 };
     let offset = 0;
-    for (let i = 0; i < page.blocks.length; i++) {
+    for (let i = speakingFromIndex; i < page.blocks.length; i++) {
       const block = page.blocks[i];
       if (block.type !== "paragraph" && block.type !== "heading") continue;
       const len = block.text.length;
@@ -66,7 +67,7 @@ export function ReaderView() {
       offset += len + 1; // +1 for the space separator in TTS text
     }
     return { activeBlockIndex: -1, localHighlightStart: -1 };
-  }, [highlightRange, page]);
+  }, [highlightRange, page, speakingFromIndex]);
 
   // After auto-page-turn: start TTS as soon as the new page finishes loading
   useEffect(() => {
@@ -251,19 +252,28 @@ export function ReaderView() {
         {pageError && <p className="text-red-500 dark:text-red-400 text-center mt-8">{pageError}</p>}
         {page && !pageLoading && (
           <article aria-live={speaking ? "off" : "polite"}>
-            {page.blocks.map((block, i) => (
-              <div key={i} ref={(el) => { blockRefs.current[i] = el; }}>
-                <BlockRenderer
-                  block={block}
-                  cdnBaseUrl={meta.cdnBaseUrl}
-                  localHighlightRange={
-                    i === activeBlockIndex && localHighlightStart >= 0 && highlightRange
-                      ? { start: localHighlightStart, length: highlightRange.length }
-                      : undefined
-                  }
-                />
-              </div>
-            ))}
+            {page.blocks.map((block, i) => {
+              const isReadable = block.type === "paragraph" || block.type === "heading";
+              return (
+                <div
+                  key={i}
+                  ref={(el) => { blockRefs.current[i] = el; }}
+                  onClick={isReadable ? () => speak(i) : undefined}
+                  title={isReadable ? "Click to read from here" : undefined}
+                  className={isReadable ? "cursor-pointer rounded hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors" : ""}
+                >
+                  <BlockRenderer
+                    block={block}
+                    cdnBaseUrl={meta.cdnBaseUrl}
+                    localHighlightRange={
+                      i === activeBlockIndex && localHighlightStart >= 0 && highlightRange
+                        ? { start: localHighlightStart, length: highlightRange.length }
+                        : undefined
+                    }
+                  />
+                </div>
+              );
+            })}
           </article>
         )}
       </main>

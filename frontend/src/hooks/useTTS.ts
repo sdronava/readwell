@@ -9,6 +9,9 @@ export function useTTS(
 ) {
   const [speaking, setSpeaking] = useState(false);
   const [highlightRange, setHighlightRange] = useState<{ start: number; length: number } | null>(null);
+  // Index into blocks[] where the current/last speak() started — used to map
+  // boundary char offsets back to the correct block in ReaderView.
+  const [speakingFromIndex, setSpeakingFromIndex] = useState(0);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   // true when stop() was called explicitly; prevents treating cancel-triggered end as natural end
   const cancelledRef = useRef(false);
@@ -16,18 +19,21 @@ export function useTTS(
   const onNaturalEndRef = useRef(onNaturalEnd);
   useEffect(() => { onNaturalEndRef.current = onNaturalEnd; }, [onNaturalEnd]);
 
-  const getReadableText = useCallback(() =>
-    blocks
-      .filter((b) => b.type === "paragraph" || b.type === "heading")
-      .map((b) => (b as { text: string }).text)
-      .join(" "),
-    [blocks]
-  );
-
-  const speak = useCallback(() => {
+  /**
+   * Start TTS from a specific block index (default 0 = beginning of page).
+   * Only paragraph and heading blocks are spoken; other block types are skipped.
+   */
+  const speak = useCallback((fromBlockIndex = 0) => {
+    setSpeakingFromIndex(fromBlockIndex);
     cancelledRef.current = false;
     window.speechSynthesis.cancel();
-    const text = getReadableText();
+
+    const text = blocks
+      .slice(fromBlockIndex)
+      .filter((b) => b.type === "paragraph" || b.type === "heading")
+      .map((b) => (b as { text: string }).text)
+      .join(" ");
+
     if (!text) return;
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -56,7 +62,7 @@ export function useTTS(
 
     window.speechSynthesis.speak(utterance);
     setSpeaking(true);
-  }, [getReadableText, rate, voiceURI]);
+  }, [blocks, rate, voiceURI]);
 
   const stop = useCallback(() => {
     cancelledRef.current = true;
@@ -65,5 +71,5 @@ export function useTTS(
     setHighlightRange(null);
   }, []);
 
-  return { speak, stop, speaking, highlightRange };
+  return { speak, stop, speaking, highlightRange, speakingFromIndex };
 }

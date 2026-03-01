@@ -173,7 +173,7 @@ export function ReaderView() {
           )}
         </div>
 
-        <div className="flex-1 min-w-0 text-center">
+        <div className="flex-1 min-w-0 overflow-hidden text-center px-2">
           <h1 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{meta.title}</h1>
         </div>
 

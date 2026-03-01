@@ -19,11 +19,11 @@ export function ReaderView() {
   const [pageNum, setPageNum] = useState(1);
   const [tocOpen, setTocOpen] = useState(false);
   const { darkMode, toggleDark } = useTheme();
-  const { fontSize, setFontSize, fontFamily, setFontFamily, ttsRate } = useReaderSettings();
+  const { fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, voiceURI } = useReaderSettings();
 
   const { meta, loading: metaLoading, error: metaError } = useBook(bookId!);
   const { page, loading: pageLoading, error: pageError } = usePage(bookId!, pageNum);
-  const { speak, stop, speaking, highlightRange } = useTTS(page?.blocks ?? [], ttsRate);
+  const { speak, stop, speaking, highlightRange } = useTTS(page?.blocks ?? [], ttsRate, voiceURI);
 
   // Refs for each rendered block element, used for auto-scroll
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);

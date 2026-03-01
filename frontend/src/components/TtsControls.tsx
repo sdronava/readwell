@@ -1,4 +1,5 @@
 import { useReaderSettings } from "../contexts/ReaderSettingsContext";
+import { useVoices } from "../hooks/useVoices";
 
 interface Props {
   speaking: boolean;
@@ -13,16 +14,44 @@ const RATES = [
   { label: "2×", value: 2 },
 ] as const;
 
+/** Strip quality suffixes for the compact dropdown label, keep full name in tooltip */
+function shortName(name: string): string {
+  return name.replace(/\s*\((Enhanced|Premium|Compact)\)\s*$/, "");
+}
+
 export function TtsControls({ speaking, onPlay, onStop }: Props) {
-  const { ttsRate, setTtsRate } = useReaderSettings();
+  const { ttsRate, setTtsRate, voiceURI, setVoiceURI } = useReaderSettings();
+  const voices = useVoices();
+
+  const selectClass =
+    "text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500";
 
   return (
     <div className="flex items-center gap-2">
+      {/* Voice selector — hidden until voices load */}
+      {voices.length > 0 && (
+        <select
+          value={voiceURI}
+          onChange={(e) => setVoiceURI(e.target.value)}
+          aria-label="TTS voice"
+          title="Select voice"
+          className={`${selectClass} max-w-[130px] truncate`}
+        >
+          <option value="">Default</option>
+          {voices.map((v) => (
+            <option key={v.voiceURI} value={v.voiceURI} title={`${v.name} (${v.lang})`}>
+              {shortName(v.name)}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {/* Speed selector */}
       <select
         value={ttsRate}
         onChange={(e) => setTtsRate(Number(e.target.value) as typeof ttsRate)}
         aria-label="TTS speed"
-        className="text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className={selectClass}
       >
         {RATES.map((r) => (
           <option key={r.value} value={r.value}>{r.label}</option>

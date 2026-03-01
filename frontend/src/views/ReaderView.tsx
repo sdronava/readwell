@@ -18,6 +18,8 @@ export function ReaderView() {
   const navigate = useNavigate();
   const [pageNum, setPageNum] = useState(1);
   const [tocOpen, setTocOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoRef = useRef<HTMLDivElement>(null);
   const { darkMode, toggleDark } = useTheme();
   const { fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, voiceURI, autoPageTurn } = useReaderSettings();
 
@@ -85,6 +87,18 @@ export function ReaderView() {
     });
   }, [activeBlockIndex, ttsRate]);
 
+  // Close the info panel when clicking outside it
+  useEffect(() => {
+    if (!infoOpen) return;
+    function handleOutside(e: MouseEvent) {
+      if (infoRef.current && !infoRef.current.contains(e.target as Node)) {
+        setInfoOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [infoOpen]);
+
   if (metaLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen dark:bg-surface-dark">
@@ -125,9 +139,42 @@ export function ReaderView() {
         >
           ☰ Contents
         </button>
-        <div className="flex-1 min-w-0">
+
+        {/* Info button + dropdown */}
+        <div className="relative" ref={infoRef}>
+          <button
+            onClick={() => setInfoOpen((o) => !o)}
+            aria-label="Book info"
+            aria-expanded={infoOpen}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white text-sm transition-colors"
+          >
+            ⓘ Info
+          </button>
+          {infoOpen && (
+            <div className="absolute left-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 z-50 text-xs space-y-1">
+              <p className="font-semibold text-gray-800 dark:text-gray-100 leading-snug">{meta.title}</p>
+              <p className="text-gray-500 dark:text-gray-400">{meta.author}</p>
+              {page && (
+                <>
+                  <hr className="border-gray-100 dark:border-gray-700 my-1" />
+                  <p className="text-gray-600 dark:text-gray-300">
+                    <span className="font-medium">Chapter:</span> {page.chapter}
+                  </p>
+                  {page.section && page.section !== page.chapter && (
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <span className="font-medium">Section:</span> {page.section}
+                    </p>
+                  )}
+                </>
+              )}
+              <hr className="border-gray-100 dark:border-gray-700 my-1" />
+              <p className="text-gray-400 dark:text-gray-500">Page {pageNum} of {meta.totalPages}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 text-center">
           <h1 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{meta.title}</h1>
-          {page && <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{page.chapter}</p>}
         </div>
 
         {/* Reader controls */}

@@ -133,11 +133,16 @@ The gateway returns a `cdnBaseUrl` with every metadata response. The frontend co
 
 ### Quickstart
 
+All paths are relative to the **project root** (`readwell/`):
+
 ```bash
-cd backend/services/content_gateway
-uv sync --group dev
-LOCAL_MODE=true BOOKS_DIR=../../../books CONTENT_BASE_URL=http://localhost:9000 \
-  uv run uvicorn content_gateway.main:app --port 8000 --reload
+# Install deps (once)
+cd backend/services/content_gateway && uv sync --group dev && cd -
+
+# Launch (from project root)
+LOCAL_MODE=true BOOKS_DIR=./books CONTENT_BASE_URL=http://localhost:9000 \
+  uv run --project backend/services/content_gateway \
+  uvicorn content_gateway.main:app --port 8000 --reload
 ```
 
 ### Tests
@@ -193,31 +198,32 @@ VITE_GATEWAY_URL=http://localhost:8000
 
 ## Running the full local stack
 
-Three terminals:
+Open three terminals, all starting from the **project root** (`readwell/`):
 
 ```bash
 # Terminal 1 — Static file server (CDN simulation)
-cd books
-python -m http.server 9000
+python -m http.server 9000 --directory books
 
 # Terminal 2 — Content Gateway API
-cd backend/services/content_gateway
-LOCAL_MODE=true BOOKS_DIR=../../../books CONTENT_BASE_URL=http://localhost:9000 \
-  uv run uvicorn content_gateway.main:app --port 8000 --reload
+LOCAL_MODE=true BOOKS_DIR=./books CONTENT_BASE_URL=http://localhost:9000 \
+  uv run --project backend/services/content_gateway \
+  uvicorn content_gateway.main:app --port 8000 --reload
 
 # Terminal 3 — React frontend
-cd frontend
-npm run dev
+cd frontend && npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173). The library will list any book package present in the `books/` directory.
 
+The gateway prints its resolved `BOOKS_DIR` and book count at startup — check Terminal 2 to confirm it found your books.
+
 ### Convert a book for local testing
 
 ```bash
-cd backend/services/document_converter
-uv run document-converter convert /path/to/book.epub \
-  --output-dir ../../../books/ \
+# From project root
+LOCAL_MODE=true uv run --project backend/services/document_converter \
+  document-converter convert /path/to/book.epub \
+  --output-dir ./books/ \
   --verbose
 ```
 

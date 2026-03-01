@@ -4,6 +4,11 @@ from pathlib import Path
 from content_gateway.config import settings
 
 
+def _books_root() -> Path:
+    """Return the absolute path to the books directory."""
+    return Path(settings.books_dir).resolve()
+
+
 def _cdn(book_id: str) -> str:
     return f"{settings.content_base_url.rstrip('/')}/{book_id}"
 
@@ -22,7 +27,7 @@ def _to_catalog_entry(book_id: str, meta: dict) -> dict:
 
 
 def list_books() -> list[dict]:
-    root = Path(settings.books_dir)
+    root = _books_root()
     if not root.exists():
         return []
     books = []
@@ -35,7 +40,7 @@ def list_books() -> list[dict]:
 
 
 def get_metadata(book_id: str) -> dict | None:
-    book_dir = Path(settings.books_dir) / book_id
+    book_dir = _books_root() / book_id
     meta_file = book_dir / "metadata.json"
     if not meta_file.exists():
         return None
@@ -52,7 +57,7 @@ def get_metadata(book_id: str) -> dict | None:
 
 
 def get_page(book_id: str, page_num: int) -> dict | None:
-    path = Path(settings.books_dir) / book_id / "pages" / f"page_{page_num:03d}.json"
+    path = _books_root() / book_id / "pages" / f"page_{page_num:03d}.json"
     if not path.exists():
         return None
     return json.loads(path.read_text())

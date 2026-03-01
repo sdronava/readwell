@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useBook } from "../hooks/useBook";
 import { usePage } from "../hooks/usePage";
@@ -19,11 +19,24 @@ export function ReaderView() {
   const [pageNum, setPageNum] = useState(1);
   const [tocOpen, setTocOpen] = useState(false);
   const { darkMode, toggleDark } = useTheme();
-  const { fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, voiceURI } = useReaderSettings();
+  const { fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, voiceURI, autoPageTurn } = useReaderSettings();
 
   const { meta, loading: metaLoading, error: metaError } = useBook(bookId!);
   const { page, loading: pageLoading, error: pageError } = usePage(bookId!, pageNum);
-  const { speak, stop, speaking, highlightRange } = useTTS(page?.blocks ?? [], ttsRate, voiceURI);
+
+  // Flag set when auto-page-turn triggers a navigation; cleared after TTS auto-starts on the new page
+  const autoPlayRef = useRef(false);
+
+  // Called by useTTS only when speech ends naturally (not when stop() is invoked)
+  const handleNaturalEnd = useCallback(() => {
+    if (!autoPageTurn || !meta) return;
+    const nextPage = pageNum + 1;
+    if (nextPage > meta.totalPages) return; // last page — just stop
+    autoPlayRef.current = true;
+    setPageNum(nextPage);
+  }, [autoPageTurn, meta, pageNum]);
+
+  const { speak, stop, speaking, highlightRange } = useTTS(page?.blocks ?? [], ttsRate, voiceURI, handleNaturalEnd);
 
   // Refs for each rendered block element, used for auto-scroll
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -52,6 +65,13 @@ export function ReaderView() {
     }
     return { activeBlockIndex: -1, localHighlightStart: -1 };
   }, [highlightRange, page]);
+
+  // After auto-page-turn: start TTS as soon as the new page finishes loading
+  useEffect(() => {
+    if (!page || pageLoading || !autoPlayRef.current) return;
+    autoPlayRef.current = false;
+    speak();
+  }, [page, pageLoading, speak]);
 
   // Auto-scroll: keep the active block centered in the viewport while TTS reads.
   // Use smooth scroll at normal/slow speeds; snap instantly at fast speeds to avoid lag.

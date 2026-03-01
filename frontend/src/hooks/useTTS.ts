@@ -1,10 +1,20 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import type { Block } from "../types/blocks";
 
-export function useTTS(blocks: Block[], rate: number = 1, voiceURI: string = "") {
+export function useTTS(
+  blocks: Block[],
+  rate: number = 1,
+  voiceURI: string = "",
+  onNaturalEnd?: () => void,
+) {
   const [speaking, setSpeaking] = useState(false);
   const [highlightRange, setHighlightRange] = useState<{ start: number; length: number } | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  // true when stop() was called explicitly; prevents treating cancel-triggered end as natural end
+  const cancelledRef = useRef(false);
+  // always holds the latest onNaturalEnd without forcing speak() to recreate
+  const onNaturalEndRef = useRef(onNaturalEnd);
+  useEffect(() => { onNaturalEndRef.current = onNaturalEnd; }, [onNaturalEnd]);
 
   const getReadableText = useCallback(() =>
     blocks
@@ -15,6 +25,7 @@ export function useTTS(blocks: Block[], rate: number = 1, voiceURI: string = "")
   );
 
   const speak = useCallback(() => {
+    cancelledRef.current = false;
     window.speechSynthesis.cancel();
     const text = getReadableText();
     if (!text) return;
@@ -38,6 +49,9 @@ export function useTTS(blocks: Block[], rate: number = 1, voiceURI: string = "")
     utterance.addEventListener("end", () => {
       setSpeaking(false);
       setHighlightRange(null);
+      if (!cancelledRef.current) {
+        onNaturalEndRef.current?.();
+      }
     });
 
     window.speechSynthesis.speak(utterance);
@@ -45,6 +59,7 @@ export function useTTS(blocks: Block[], rate: number = 1, voiceURI: string = "")
   }, [getReadableText, rate, voiceURI]);
 
   const stop = useCallback(() => {
+    cancelledRef.current = true;
     window.speechSynthesis.cancel();
     setSpeaking(false);
     setHighlightRange(null);

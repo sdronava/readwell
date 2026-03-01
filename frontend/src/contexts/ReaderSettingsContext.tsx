@@ -14,6 +14,9 @@ interface ReaderSettingsValue {
   /** voiceURI of the selected SpeechSynthesisVoice; empty string = browser default */
   voiceURI: string;
   setVoiceURI: (uri: string) => void;
+  /** Automatically turn to the next page when TTS finishes reading */
+  autoPageTurn: boolean;
+  setAutoPageTurn: (enabled: boolean) => void;
 }
 
 const ReaderSettingsContext = createContext<ReaderSettingsValue>({
@@ -25,6 +28,8 @@ const ReaderSettingsContext = createContext<ReaderSettingsValue>({
   setTtsRate: () => {},
   voiceURI: "",
   setVoiceURI: () => {},
+  autoPageTurn: true,
+  setAutoPageTurn: () => {},
 });
 
 export function ReaderSettingsProvider({ children }: { children: React.ReactNode }) {
@@ -32,10 +37,11 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
   const [fontFamily, setFontFamily] = useState<FontFamily>("reading");
   const [ttsRate, setTtsRate] = useState<TtsRate>(1);
   const [voiceURI, setVoiceURI] = useState<string>("");
+  const [autoPageTurn, setAutoPageTurn] = useState<boolean>(true);
 
   return (
     <ReaderSettingsContext.Provider
-      value={{ fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, setTtsRate, voiceURI, setVoiceURI }}
+      value={{ fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, setTtsRate, voiceURI, setVoiceURI, autoPageTurn, setAutoPageTurn }}
     >
       {children}
     </ReaderSettingsContext.Provider>

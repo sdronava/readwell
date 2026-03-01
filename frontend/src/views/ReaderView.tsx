@@ -37,23 +37,20 @@ export function ReaderView() {
     }
   }
 
-  // Compute which block is currently being read by TTS
-  const activeBlockIndex = useMemo(() => {
-    if (!highlightRange || !page) return -1;
+  // Compute which block is being read and the word's local offset within that block
+  const { activeBlockIndex, localHighlightStart } = useMemo(() => {
+    if (!highlightRange || !page) return { activeBlockIndex: -1, localHighlightStart: -1 };
     let offset = 0;
     for (let i = 0; i < page.blocks.length; i++) {
       const block = page.blocks[i];
       if (block.type !== "paragraph" && block.type !== "heading") continue;
       const len = block.text.length;
-      if (
-        highlightRange.start >= offset &&
-        highlightRange.start < offset + len
-      ) {
-        return i;
+      if (highlightRange.start >= offset && highlightRange.start < offset + len) {
+        return { activeBlockIndex: i, localHighlightStart: highlightRange.start - offset };
       }
       offset += len + 1; // +1 for the space separator in TTS text
     }
-    return -1;
+    return { activeBlockIndex: -1, localHighlightStart: -1 };
   }, [highlightRange, page]);
 
   // Auto-scroll: keep the active block centered in the viewport while TTS reads.
@@ -192,7 +189,11 @@ export function ReaderView() {
                 <BlockRenderer
                   block={block}
                   cdnBaseUrl={meta.cdnBaseUrl}
-                  isActiveBlock={i === activeBlockIndex}
+                  localHighlightRange={
+                    i === activeBlockIndex && localHighlightStart >= 0 && highlightRange
+                      ? { start: localHighlightStart, length: highlightRange.length }
+                      : undefined
+                  }
                 />
               </div>
             ))}

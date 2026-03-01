@@ -20,15 +20,19 @@ const fontSizeClass: Record<string, string> = {
 interface Props {
   block: Block;
   cdnBaseUrl: string;
-  /** True when TTS is currently reading within this block */
-  isActiveBlock?: boolean;
+  /**
+   * Character range within this block's text that the TTS cursor is on.
+   * Undefined when TTS is not reading this block.
+   */
+  localHighlightRange?: { start: number; length: number };
 }
 
-export function BlockRenderer({ block, cdnBaseUrl, isActiveBlock = false }: Props) {
+export function BlockRenderer({ block, cdnBaseUrl, localHighlightRange }: Props) {
   const { fontSize, fontFamily } = useReaderSettings();
   const textSize = fontSizeClass[fontSize];
   const readingFont = fontFamily === "reading" ? "font-reading" : "font-sans";
-  const activeClass = isActiveBlock ? "bg-yellow-100 dark:bg-yellow-900/30 rounded" : "";
+  // Subtle block-level tint when this block is being read
+  const activeClass = localHighlightRange ? "bg-yellow-50 dark:bg-yellow-900/15 rounded" : "";
 
   switch (block.type) {
     case "heading": {
@@ -36,7 +40,7 @@ export function BlockRenderer({ block, cdnBaseUrl, isActiveBlock = false }: Prop
       const sizeClass = ["", "text-3xl", "text-2xl", "text-xl", "text-lg", "text-base", "text-sm"][block.level];
       return (
         <Tag className={`font-bold my-4 text-gray-900 dark:text-gray-100 ${sizeClass} ${activeClass}`}>
-          {block.text}
+          <EmphasisText text={block.text} emphasis={[]} highlight={localHighlightRange} />
         </Tag>
       );
     }
@@ -44,7 +48,11 @@ export function BlockRenderer({ block, cdnBaseUrl, isActiveBlock = false }: Prop
     case "paragraph":
       return (
         <p className={`my-3 leading-7 text-gray-800 dark:text-gray-200 ${readingFont} ${textSize} ${activeClass}`}>
-          <EmphasisText text={block.text} emphasis={block.emphasis ?? []} />
+          <EmphasisText
+            text={block.text}
+            emphasis={block.emphasis ?? []}
+            highlight={localHighlightRange}
+          />
         </p>
       );
 

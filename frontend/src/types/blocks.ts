@@ -49,6 +49,8 @@ export interface TocEntry {
   title: string;
   href: string;
   depth: number;
+  /** First page of the chapter, resolved server-side from manifest.json */
+  pageNum?: number;
 }
 
 export interface BookSummary {

@@ -115,11 +115,6 @@ export function ReaderView() {
     );
   }
 
-  const manifest = meta.tableOfContents.map((ch, i) => ({
-    pageNum: i + 1,
-    chapterHref: ch.href,
-  }));
-
   const fontSizeIdx = FONT_SIZES.indexOf(fontSize);
 
   return (
@@ -239,7 +234,6 @@ export function ReaderView() {
           />
           <TocSidebar
             chapters={meta.tableOfContents}
-            manifest={manifest}
             onClose={() => setTocOpen(false)}
             onJump={(p) => { goTo(p); setTocOpen(false); }}
           />

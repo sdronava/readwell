@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useBook } from "../hooks/useBook";
 import { usePage } from "../hooks/usePage";
@@ -24,6 +24,9 @@ export function ReaderView() {
   const { meta, loading: metaLoading, error: metaError } = useBook(bookId!);
   const { page, loading: pageLoading, error: pageError } = usePage(bookId!, pageNum);
   const { speak, stop, speaking, highlightRange } = useTTS(page?.blocks ?? [], ttsRate);
+
+  // Refs for each rendered block element, used for auto-scroll
+  const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   function goTo(n: number) {
     if (!meta) return;
@@ -52,6 +55,18 @@ export function ReaderView() {
     }
     return -1;
   }, [highlightRange, page]);
+
+  // Auto-scroll: keep the active block centered in the viewport while TTS reads.
+  // Use smooth scroll at normal/slow speeds; snap instantly at fast speeds to avoid lag.
+  useEffect(() => {
+    if (activeBlockIndex < 0) return;
+    const el = blockRefs.current[activeBlockIndex];
+    if (!el) return;
+    el.scrollIntoView({
+      behavior: ttsRate > 1 ? "auto" : "smooth",
+      block: "center",
+    });
+  }, [activeBlockIndex, ttsRate]);
 
   if (metaLoading) {
     return (
@@ -173,12 +188,13 @@ export function ReaderView() {
         {page && !pageLoading && (
           <article aria-live={speaking ? "off" : "polite"}>
             {page.blocks.map((block, i) => (
-              <BlockRenderer
-                key={i}
-                block={block}
-                cdnBaseUrl={meta.cdnBaseUrl}
-                isActiveBlock={i === activeBlockIndex}
-              />
+              <div key={i} ref={(el) => { blockRefs.current[i] = el; }}>
+                <BlockRenderer
+                  block={block}
+                  cdnBaseUrl={meta.cdnBaseUrl}
+                  isActiveBlock={i === activeBlockIndex}
+                />
+              </div>
             ))}
           </article>
         )}

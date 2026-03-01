@@ -55,7 +55,7 @@ Readwell is built as a set of loosely coupled microservices that can be develope
 |---|---|---|
 | Document Conversion Service | Python / uv, ebooklib, Pillow | ✅ Implemented |
 | Content Gateway API | Python / FastAPI, pydantic-settings | ✅ Implemented |
-| React Frontend | TypeScript / React 18, Vite, Tailwind CSS | ✅ Implemented |
+| React Frontend | TypeScript / React 19, Vite, Tailwind CSS | ✅ Implemented |
 | User Management Service | — | Phase 2 |
 | TTS Service (backend) | — | Phase 2 (Phase 1 uses browser Web Speech API) |
 | Multimedia Explanation Service | — | Phase 2 |
@@ -157,28 +157,43 @@ uv run pytest tests/ -v          # 10 unit tests
 
 **Path:** `frontend/`
 
-React 18 + TypeScript reader app built with Vite and Tailwind CSS.
+React 19 + TypeScript reader app built with Vite 7 and Tailwind CSS 3. Self-hosted Inter (UI) and Lora (reading) fonts via `@fontsource` — no external CDN requests.
 
 ### Views
 
 | View | Route | Description |
 |---|---|---|
-| `LibraryView` | `/` | Responsive book grid — cover, title, author, "Read" button |
-| `ReaderView` | `/books/:bookId` | Page reader with navigation, TOC sidebar, TTS |
+| `LibraryView` | `/` | Responsive book grid with search, skeleton loading, dark mode toggle |
+| `ReaderView` | `/books/:bookId` | Full reader — navigation, TOC sidebar, font/size controls, TTS |
+
+### Design system
+
+- **Dark mode** — `darkMode: 'class'` strategy; preference persisted to `localStorage`
+- **Typography** — Inter for UI, Lora for reading content (user-switchable); 4 font-size presets (S / M / L / XL)
+- **Design tokens** — `brand` and `surface` color palettes defined in `tailwind.config.js`
+- **Loading skeletons** — animated `SkeletonCard` and `SkeletonPage` replace bare "Loading…" text
+- **Focus states** — global `focus-visible` ring using `brand-500`
+
+See [specs/UIDesign.md](specs/UIDesign.md) for the full design system reference.
 
 ### Block rendering
 
 `BlockRenderer` handles all five content block types produced by the conversion pipeline:
 
-- **heading** — `h1`–`h6` with appropriate Tailwind sizing
-- **paragraph** — plain text with character-range bold/italic via `EmphasisText`
-- **code** — monospace block with language class for syntax highlighting
+- **heading** — `h1`–`h6` with appropriate sizing; TTS word cursor support
+- **paragraph** — bold/italic emphasis plus moving TTS word highlight via `EmphasisText`
+- **code** — monospace, scrollable, dark-mode aware
 - **list** — ordered or unordered
 - **image** — responsive `<img srcSet>` loading WebP variants from the CDN/static server
 
 ### TTS
 
-The `useTTS` hook uses `window.speechSynthesis` with `boundary` events to track the current word position. The reader view sets `aria-live="off"` on the content area while TTS is active to prevent screen-reader conflicts.
+The `useTTS` hook drives the browser Web Speech API (`window.speechSynthesis`) — zero backend cost, works on desktop and mobile browsers. Features:
+
+- **Speed control** — 0.75×, 1×, 1.5×, 2× picker; default 1×
+- **Karaoke-style word cursor** — `boundary` events resolve each word's character range; `EmphasisText` renders a moving yellow highlight exactly on the current word, compatible with bold/italic runs
+- **Auto-scroll** — the viewport keeps the active paragraph centered; smooth animation at ≤1× speed, instant snap at faster speeds to avoid lag
+- **Accessibility** — `aria-live="off"` on the content area while TTS is active; a visible status banner informs screen-reader users
 
 ### Quickstart
 
@@ -245,4 +260,5 @@ LOCAL_MODE=true uv run --project backend/services/document_converter \
 | [specs/Proposal.md](specs/Proposal.md) | Full architecture proposal (microservices, tech stack, 4-phase roadmap) |
 | [specs/Phase1-MVP.md](specs/Phase1-MVP.md) | Phase 1 detailed plan (sprints, API spec, DB schema) |
 | [specs/DocumentConversionService.md](specs/DocumentConversionService.md) | Document Conversion Service design |
+| [specs/UIDesign.md](specs/UIDesign.md) | Frontend design system (tokens, dark mode, typography, components) |
 | [specs/ReadBook.md](specs/ReadBook.md) | Local testing plan for Scenario 4 (Reader Opens Book) |

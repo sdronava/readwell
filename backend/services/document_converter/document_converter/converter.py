@@ -108,12 +108,13 @@ class DocumentConverter:
         all_pages: list[list[dict]] = []
         page_index: list[dict] = []   # one entry per page (for manifest)
         page_chapters: list[str] = []  # chapter title per page
+        anchor_to_page: dict[str, int] = {}  # fragment id → 1-based page number
 
         block_builder = BlockBuilder(image_map=image_map)
         current_chapter = ""
 
         for spine_item in spine:
-            raw_blocks = block_builder.build(spine_item["content"])
+            raw_blocks, spine_anchors = block_builder.build(spine_item["content"])
             if not raw_blocks:
                 continue
 
@@ -135,6 +136,26 @@ class DocumentConverter:
 
             # Segment into pages
             chapter_pages = segmenter.segment(raw_blocks)
+
+            # Build anchor_id → page_num mapping for this spine item.
+            # spine_anchors maps {anchor_id: block_index_within_raw_blocks}.
+            # We walk the segmented pages to find which page each block lands on.
+            if spine_anchors:
+                page_num_start = len(all_pages) + 1  # 1-based
+                running_block = 0
+                for page_idx, page_blocks in enumerate(chapter_pages):
+                    page_num = page_num_start + page_idx
+                    page_end = running_block + len(page_blocks)
+                    for anchor_id, block_idx in spine_anchors.items():
+                        if running_block <= block_idx < page_end:
+                            anchor_to_page[anchor_id] = page_num
+                    running_block = page_end
+                # Anchors that fall at or beyond the last block map to the last page
+                last_page = page_num_start + len(chapter_pages) - 1
+                for anchor_id, block_idx in spine_anchors.items():
+                    if anchor_id not in anchor_to_page:
+                        anchor_to_page[anchor_id] = last_page
+
             for page_blocks in chapter_pages:
                 section_title = next(
                     (b["text"] for b in page_blocks if b["type"] == "heading"), ""
@@ -155,7 +176,7 @@ class DocumentConverter:
 
         # ── 6. Write output package ────────────────────────────────────
         builder.write_chapters(toc)
-        builder.write_manifest(spine, page_index)
+        builder.write_manifest(spine, page_index, anchor_to_page)
         builder.write_metadata(metadata, total_pages)
 
         for page_num, (page_blocks, chapter_title) in enumerate(

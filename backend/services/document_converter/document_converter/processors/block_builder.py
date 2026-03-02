@@ -21,19 +21,26 @@ class BlockBuilder:
         # image_map: {epub_href → output_relative_path}
         self.image_map = image_map or {}
 
-    def build(self, html_content: str) -> list[dict]:
-        """Parse HTML and return a flat list of content blocks."""
+    def build(self, html_content: str) -> tuple[list[dict], dict[str, int]]:
+        """Parse HTML and return (blocks, anchor_map).
+
+        anchor_map maps each HTML element id found in the content to the index
+        of the first block at or after that element's position.  This lets the
+        caller resolve TOC fragment hrefs (e.g. ``#pgepubid00003``) to the
+        correct page after segmentation.
+        """
         soup = BeautifulSoup(html_content, "lxml")
         body = soup.find("body") or soup
         blocks: list[dict] = []
-        self._process_node(body, blocks)
-        return blocks
+        anchors: dict[str, int] = {}
+        self._process_node(body, blocks, anchors)
+        return blocks, anchors
 
     # ------------------------------------------------------------------
     # Node traversal
     # ------------------------------------------------------------------
 
-    def _process_node(self, node: Tag, blocks: list[dict]) -> None:
+    def _process_node(self, node: Tag, blocks: list[dict], anchors: dict[str, int]) -> None:
         for child in node.children:
             if isinstance(child, NavigableString):
                 continue
@@ -41,6 +48,12 @@ class BlockBuilder:
                 continue
 
             tag = child.name
+
+            # Record any id attribute at the current block boundary so the
+            # caller can map TOC fragment hrefs to page numbers later.
+            el_id = child.get("id")
+            if el_id:
+                anchors[el_id] = len(blocks)
 
             if tag in HEADING_TAGS:
                 block = self._heading(child)
@@ -77,7 +90,7 @@ class BlockBuilder:
                 blocks.append({"type": "paragraph", "text": "[Table — rendering not yet supported]"})
 
             elif tag in CONTAINER_TAGS:
-                self._process_node(child, blocks)
+                self._process_node(child, blocks, anchors)
 
             # Skip nav, aside, header, footer, script, style, etc.
 

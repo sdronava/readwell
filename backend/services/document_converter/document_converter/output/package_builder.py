@@ -44,7 +44,12 @@ class PackageBuilder:
         self._write_json("metadata.json", data)
         logger.debug("Wrote metadata.json")
 
-    def write_manifest(self, spine: list[dict], page_index: list[dict]) -> None:
+    def write_manifest(
+        self,
+        spine: list[dict],
+        page_index: list[dict],
+        anchor_to_page: dict | None = None,
+    ) -> None:
         data = {
             "bookId": self.book_id,
             "spine": [
@@ -53,6 +58,8 @@ class PackageBuilder:
             "fileIndex": {
                 f"page_{i + 1:03d}": entry for i, entry in enumerate(page_index)
             },
+            # Maps HTML element id (TOC fragment) → 1-based page number
+            "anchorIndex": anchor_to_page or {},
         }
         self._write_json("manifest.json", data)
         logger.debug("Wrote manifest.json")

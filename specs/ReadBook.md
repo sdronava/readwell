@@ -85,30 +85,25 @@ The local static file server maps this folder directly onto a URL base. The gate
 ## 3. Component 1 — Local Static File Server (CDN Simulation)
 
 **Port:** `9000`
-**Serves:** the parent directory of your book packages (e.g. the project root `/readwell/`)
-**Purpose:** mimics CloudFront serving `books/{bookId}/assets/` and `books/{bookId}/pages/`
+**Serves:** the `books/` directory directly (each book package is a subdirectory)
+**Purpose:** mimics CloudFront serving `{bookId}/assets/` and `{bookId}/pages/`
 
 ### Launch command
 
 ```bash
-# From the project root — serves ALL book packages under published_book/, books/, etc.
-python -m http.server 9000
-```
-
-Or with `npx`:
-```bash
-npx serve . --listen 9000 --cors
+# From the project root
+python -m http.server 9000 --directory books
 ```
 
 ### URL shape
 
 | Resource | URL |
 |---|---|
-| Cover image | `http://localhost:9000/published_book/assets/images/cover.png` |
-| Page 5 JSON | `http://localhost:9000/published_book/pages/page_005.json` |
-| Responsive image | `http://localhost:9000/published_book/assets/images/fig_1_1_800w.webp` |
+| Cover image | `http://localhost:9000/{bookId}/assets/images/cover.png` |
+| Page 5 JSON | `http://localhost:9000/{bookId}/pages/page_005.json` |
+| Responsive image | `http://localhost:9000/{bookId}/assets/images/fig_1_1_800w.webp` |
 
-The gateway returns `cdnBaseUrl: "http://localhost:9000/published_book"` for each book, and the frontend constructs all content URLs from this base.
+The gateway returns `cdnBaseUrl: "http://localhost:9000/{bookId}"` for each book, and the frontend constructs all content URLs from this base.
 
 ---
 
@@ -119,13 +114,26 @@ The gateway returns `cdnBaseUrl: "http://localhost:9000/published_book"` for eac
 **Location:** `backend/services/content_gateway/`
 **Mode:** `LOCAL_MODE=true` — reads book packages from `BOOKS_DIR` on the local filesystem; no database, no auth
 
-### 4.1 Environment variables (local mode)
+### 4.1 Configuration
 
-| Variable | Example | Description |
+Configuration is stored in `backend/services/content_gateway/.env` (read automatically when launching from that directory):
+
+```
+BOOKS_DIR=../../../books
+CONTENT_BASE_URL=http://localhost:9000
+```
+
+| Variable | Default | Description |
 |---|---|---|
 | `LOCAL_MODE` | `true` | Skip DB and auth; read books from `BOOKS_DIR` |
-| `BOOKS_DIR` | `/path/to/readwell` | Root directory containing book package folders |
+| `BOOKS_DIR` | `./books` | Path to the directory containing book package folders |
 | `CONTENT_BASE_URL` | `http://localhost:9000` | Base URL of the static file server (CDN simulation) |
+
+**Launch command** (from `backend/services/content_gateway/`):
+
+```bash
+uv run uvicorn content_gateway.main:app --port 8000 --reload
+```
 
 ### 4.2 Endpoints implemented for Scenario 4
 
@@ -166,7 +174,8 @@ Response 200:
   "license": null,
   "cdnBaseUrl": "http://localhost:9000/published_book",
   "tableOfContents": [
-    { "title": "Preface", "href": "...", "depth": 0 },
+    { "title": "Preface", "href": "chapter01.xhtml#intro", "depth": 0, "pageNum": 3 },
+    { "title": "Chapter 1", "href": "chapter01.xhtml#ch1", "depth": 1, "pageNum": 18 },
     …
   ]
 }

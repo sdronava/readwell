@@ -4,15 +4,9 @@ interface Props {
   chapters: TocEntry[];
   onClose: () => void;
   onJump: (page: number) => void;
-  manifest: Array<{ pageNum: number; chapterHref: string }>;
 }
 
-export function TocSidebar({ chapters, onClose, onJump, manifest }: Props) {
-  function pageForChapter(href: string): number {
-    const entry = manifest.find((m) => m.chapterHref === href || href.startsWith(m.chapterHref));
-    return entry?.pageNum ?? 1;
-  }
-
+export function TocSidebar({ chapters, onClose, onJump }: Props) {
   return (
     <aside className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-surface-muted-dark shadow-xl z-50 flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
@@ -29,7 +23,7 @@ export function TocSidebar({ chapters, onClose, onJump, manifest }: Props) {
         {chapters.map((ch, i) => (
           <button
             key={i}
-            onClick={() => onJump(pageForChapter(ch.href))}
+            onClick={() => onJump(ch.pageNum ?? 1)}
             style={{ paddingLeft: `${Math.min(ch.depth * 16 + 12, 48)}px` }}
             className="w-full text-left py-2 pr-3 rounded hover:bg-brand-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 transition-colors"
           >

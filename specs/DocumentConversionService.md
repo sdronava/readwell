@@ -106,16 +106,23 @@ books/{bookId}/
 {
   "bookId": "book_001",
   "spine": [
-    { "id": "ncx", "href": "toc.ncx", "type": "application/x-dtbncx+xml" },
-    { "id": "ch01", "href": "content/chapter_01.xhtml", "type": "application/xhtml+xml" },
-    { "id": "ch02", "href": "content/chapter_02.xhtml", "type": "application/xhtml+xml" }
+    { "id": "ch01", "href": "content/chapter_01.xhtml" },
+    { "id": "ch02", "href": "content/chapter_02.xhtml" }
   ],
   "fileIndex": {
-    "page_001": { "source": "ch01", "startOffset": 0, "endOffset": 1500 },
-    "page_002": { "source": "ch01", "startOffset": 1500, "endOffset": 3200 }
+    "page_001": { "source": "ch01", "chapterTitle": "Introduction" },
+    "page_002": { "source": "ch01", "chapterTitle": "Introduction" },
+    "page_003": { "source": "ch02", "chapterTitle": "Chapter 2" }
+  },
+  "anchorIndex": {
+    "intro":    1,
+    "section1": 2,
+    "ch2":      3
   }
 }
 ```
+
+`anchorIndex` maps each HTML element `id` found in the source to its 1-based page number.  The Content Gateway uses this to resolve TOC fragment hrefs (e.g. `chapter_01.xhtml#intro`) to exact pages.
 
 **pages/page_NNN.json Example:**
 ```json

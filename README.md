@@ -104,7 +104,7 @@ uv run document-converter convert /path/to/book.epub --verbose
 ### Tests
 
 ```bash
-uv run pytest tests/ -v          # 70 unit tests
+uv run pytest tests/ -v          # 74 unit tests
 docker build --target test -t document-converter:test .
 docker run --rm document-converter:test
 ```
@@ -133,16 +133,19 @@ The gateway returns a `cdnBaseUrl` with every metadata response. The frontend co
 
 ### Quickstart
 
-All paths are relative to the **project root** (`readwell/`):
-
 ```bash
 # Install deps (once)
-cd backend/services/content_gateway && uv sync --group dev && cd -
+cd backend/services/content_gateway && uv sync --group dev
 
-# Launch (from project root)
-LOCAL_MODE=true BOOKS_DIR=./books CONTENT_BASE_URL=http://localhost:9000 \
-  uv run --project backend/services/content_gateway \
-  uvicorn content_gateway.main:app --port 8000 --reload
+# Launch — reads config from .env in the same directory
+uv run uvicorn content_gateway.main:app --port 8000 --reload
+```
+
+Configuration lives in `backend/services/content_gateway/.env`:
+
+```
+BOOKS_DIR=../../../books
+CONTENT_BASE_URL=http://localhost:9000
 ```
 
 ### Tests
@@ -192,6 +195,8 @@ The `useTTS` hook drives the browser Web Speech API (`window.speechSynthesis`) �
 
 - **Speed control** — 0.75×, 1×, 1.5×, 2× picker; default 1×
 - **Karaoke-style word cursor** — `boundary` events resolve each word's character range; `EmphasisText` renders a moving yellow highlight exactly on the current word, compatible with bold/italic runs
+- **Click-to-read** — click any paragraph or heading to start TTS from that point
+- **Auto-page-turn** — when TTS finishes the last paragraph it advances to the next page and resumes automatically; toggle in the TTS controls
 - **Auto-scroll** — the viewport keeps the active paragraph centered; smooth animation at ≤1× speed, instant snap at faster speeds to avoid lag
 - **Accessibility** — `aria-live="off"` on the content area while TTS is active; a visible status banner informs screen-reader users
 
@@ -219,10 +224,9 @@ Open three terminals, all starting from the **project root** (`readwell/`):
 # Terminal 1 — Static file server (CDN simulation)
 python -m http.server 9000 --directory books
 
-# Terminal 2 — Content Gateway API
-LOCAL_MODE=true BOOKS_DIR=./books CONTENT_BASE_URL=http://localhost:9000 \
-  uv run --project backend/services/content_gateway \
-  uvicorn content_gateway.main:app --port 8000 --reload
+# Terminal 2 — Content Gateway API  (reads config from backend/services/content_gateway/.env)
+cd backend/services/content_gateway && \
+  uv run uvicorn content_gateway.main:app --port 8000 --reload
 
 # Terminal 3 — React frontend
 cd frontend && npm run dev
@@ -235,10 +239,9 @@ The gateway prints its resolved `BOOKS_DIR` and book count at startup — check 
 ### Convert a book for local testing
 
 ```bash
-# From project root
-LOCAL_MODE=true uv run --project backend/services/document_converter \
-  document-converter convert /path/to/book.epub \
-  --output-dir ./books/ \
+cd backend/services/document_converter
+uv run document-converter convert /path/to/book.epub \
+  --output-dir ../../../books/ \
   --verbose
 ```
 

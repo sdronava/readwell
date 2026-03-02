@@ -20,7 +20,9 @@ readwell/
 │   ├── Proposal.md               # Architecture proposal (microservices, 4-phase roadmap)
 │   ├── Phase1-MVP.md             # Phase 1 detailed plan (API spec, DB schema, sprints)
 │   ├── DocumentConversionService.md
-│   └── ReadBook.md               # Local testing plan for Scenario 4 (Reader Opens Book)
+│   ├── ReadBook.md               # Local testing plan for Scenario 4 (Reader Opens Book)
+│   ├── UIDesign.md               # UI design system and component specifications
+│   └── VoiceCommands.md          # Voice commands feature guide (user & developer docs)
 ├── books/                        # Converted book packages (gitignored)
 └── pubs/                         # Source ePUB files (gitignored)
 ```
@@ -199,6 +201,25 @@ The `useTTS` hook drives the browser Web Speech API (`window.speechSynthesis`) �
 - **Auto-page-turn** — when TTS finishes the last paragraph it advances to the next page and resumes automatically; toggle in the TTS controls
 - **Auto-scroll** — the viewport keeps the active paragraph centered; smooth animation at ≤1× speed, instant snap at faster speeds to avoid lag
 - **Accessibility** — `aria-live="off"` on the content area while TTS is active; a visible status banner informs screen-reader users
+
+### Voice Commands
+
+Hands-free control with push-to-talk voice commands using Web Speech API. Hold spacebar to activate, speak commands to control playback, speed, and navigation.
+
+**Supported commands:**
+- **Playback**: "read aloud", "pause", "resume", "stop reading"
+- **Speed**: "faster", "slower", "normal speed"
+- **Navigation**: "next page", "previous page", "page [number]"
+
+**Features:**
+- **Push-to-Talk** — Hold spacebar to listen, release to execute
+- **Live feedback** — Waveform animation, live transcript, confidence percentage
+- **TTS integration** — Automatically pauses TTS during voice activation for clear recognition
+- **Fuzzy matching** — Handles pronunciation variations ("alowed" → "aloud")
+- **No server required** — Client-side only, offline-capable
+- **Browser support** — Chrome/Edge (full), Firefox (full), Safari (partial), Mobile browsers (good)
+
+See [specs/VoiceCommands.md](specs/VoiceCommands.md) for detailed user guide and developer documentation.
 
 ### Quickstart
 

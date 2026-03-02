@@ -7,11 +7,14 @@ import { BlockRenderer } from "../components/BlockRenderer";
 import { NavBar } from "../components/NavBar";
 import { TocSidebar } from "../components/TocSidebar";
 import { TtsControls } from "../components/TtsControls";
+import { VoiceCommandListener } from "../components/VoiceCommandListener";
 import { SkeletonPage } from "../components/SkeletonPage";
 import { useTheme } from "../contexts/ThemeContext";
 import { useReaderSettings } from "../contexts/ReaderSettingsContext";
+import type { VoiceCommand } from "../types/voiceCommands";
 
 const FONT_SIZES = ["sm", "base", "lg", "xl"] as const;
+const TTS_RATES = [0.75, 1, 1.5, 2] as const;
 
 export function ReaderView() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -19,9 +22,10 @@ export function ReaderView() {
   const [pageNum, setPageNum] = useState(1);
   const [tocOpen, setTocOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [wasPlayingBeforeVoice, setWasPlayingBeforeVoice] = useState(false);
   const infoRef = useRef<HTMLDivElement>(null);
   const { darkMode, toggleDark } = useTheme();
-  const { fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, voiceURI, autoPageTurn } = useReaderSettings();
+  const { fontSize, setFontSize, fontFamily, setFontFamily, ttsRate, setTtsRate, voiceURI, autoPageTurn } = useReaderSettings();
 
   const { meta, loading: metaLoading, error: metaError } = useBook(bookId!);
   const { page, loading: pageLoading, error: pageError } = usePage(bookId!, pageNum);
@@ -42,6 +46,71 @@ export function ReaderView() {
 
   // Refs for each rendered block element, used for auto-scroll
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Handle voice command activation (pause TTS to allow clear speech recognition)
+  const handleVoiceCommandStart = useCallback(() => {
+    if (speaking) {
+      setWasPlayingBeforeVoice(true);
+      stop();
+    }
+  }, [speaking, stop]);
+
+  // Handle voice command deactivation (resume TTS if it was playing)
+  const handleVoiceCommandStop = useCallback(() => {
+    if (wasPlayingBeforeVoice) {
+      speak(speakingFromIndex);
+      setWasPlayingBeforeVoice(false);
+    }
+  }, [wasPlayingBeforeVoice, speak, speakingFromIndex]);
+
+  // Handle voice commands
+  const handleVoiceCommand = useCallback(
+    (command: VoiceCommand) => {
+      switch (command.type) {
+        case "play":
+          if (!speaking) speak();
+          break;
+        case "pause":
+        case "resume":
+          // Can add true pause support later (requires speechSynthesis.pause())
+          if (!speaking) speak();
+          break;
+        case "stop":
+          stop();
+          setWasPlayingBeforeVoice(false);
+          break;
+        case "faster": {
+          const currentIdx = TTS_RATES.indexOf(ttsRate as any);
+          if (currentIdx < TTS_RATES.length - 1) {
+            setTtsRate(TTS_RATES[currentIdx + 1]);
+          }
+          break;
+        }
+        case "slower": {
+          const currentIdx = TTS_RATES.indexOf(ttsRate as any);
+          if (currentIdx > 0) {
+            setTtsRate(TTS_RATES[currentIdx - 1]);
+          }
+          break;
+        }
+        case "speed_normal":
+          setTtsRate(1);
+          break;
+        case "next_page":
+          if (meta) goTo(Math.min(meta.totalPages, pageNum + 1));
+          break;
+        case "previous_page":
+          goTo(Math.max(1, pageNum - 1));
+          break;
+        case "goto_page":
+          if (meta && command.pageNumber) {
+            goTo(Math.max(1, Math.min(meta.totalPages, command.pageNumber)));
+          }
+          break;
+      }
+    },
+    [speaking, speak, stop, ttsRate, setTtsRate, pageNum, meta]
+  );
 
   function goTo(n: number) {
     if (!meta) return;
@@ -279,6 +348,13 @@ export function ReaderView() {
         onPrev={() => goTo(pageNum - 1)}
         onNext={() => goTo(pageNum + 1)}
         onGoTo={goTo}
+      />
+
+      {/* Voice command listener */}
+      <VoiceCommandListener
+        onCommand={handleVoiceCommand}
+        onListeningStart={handleVoiceCommandStart}
+        onListeningStop={handleVoiceCommandStop}
       />
     </div>
   );

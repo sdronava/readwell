@@ -10,6 +10,7 @@ interface Props {
 
 export function NavBar({ pageNum, totalPages, onPrev, onNext, onGoTo }: Props) {
   const [inputVal, setInputVal] = useState(String(pageNum));
+  const [showVoiceHint, setShowVoiceHint] = useState(false);
 
   // Keep input in sync when page changes externally (e.g. TOC jump)
   useEffect(() => {
@@ -62,6 +63,25 @@ export function NavBar({ pageNum, totalPages, onPrev, onNext, onGoTo }: Props) {
         />
         <span className="text-sm text-gray-500 dark:text-gray-400">/ {totalPages}</span>
       </form>
+
+      {/* Voice commands info */}
+      <div className="relative">
+        <button
+          onClick={() => setShowVoiceHint(!showVoiceHint)}
+          title="Voice commands help"
+          aria-label="Voice commands help"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors px-2 py-1"
+        >
+          🎤
+        </button>
+        {showVoiceHint && (
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 dark:bg-gray-950 text-white text-xs rounded-lg p-3 whitespace-nowrap shadow-lg border border-gray-700 z-50">
+            <p className="font-semibold mb-2">Voice Commands</p>
+            <p className="text-gray-300">Hold <kbd className="bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">spacebar</kbd> to speak</p>
+            <p className="text-gray-400 text-xs mt-1">e.g., "next page", "faster", "page 5"</p>
+          </div>
+        )}
+      </div>
 
       <button
         onClick={onNext}
